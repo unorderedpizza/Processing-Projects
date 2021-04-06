@@ -163,14 +163,6 @@ void draw() {
         temp_a[mouse_x * height + mouse_y] = time_step * 1000.0;
       }
     }
-    for (int j = 0; j < width; j ++) {
-      temp_u[j * height] = new vector_2d_t();
-      temp_u[j * height + height - 1] = new vector_2d_t();
-    }
-    for (int j = 1; j < height - 1; j ++) {
-      temp_u[j] = new vector_2d_t();
-      temp_u[(width - 1) * height + j] = new vector_2d_t();
-    }
     
     for (int j = 1; j < width - 1; j ++) {
       for (int k = 1; k < height - 1; k ++) {
