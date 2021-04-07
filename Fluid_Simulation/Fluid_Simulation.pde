@@ -29,7 +29,8 @@ class vector_2d_t {
   
   // variables
   
-  double x, y;
+  float x;
+  float y;
   
   // functions
   
@@ -41,7 +42,7 @@ class vector_2d_t {
     x = a.x;
     y = a.y;
   }
-  vector_2d_t(double a, double b) {
+  vector_2d_t(float a, float b) {
     x = a;
     y = b;
   }
@@ -50,7 +51,7 @@ class vector_2d_t {
     vector_2d_t temp = new vector_2d_t(x + a.x, y + a.y);
     return temp;
   }
-  vector_2d_t scale(double a) {
+  vector_2d_t scale(float a) {
     vector_2d_t temp = new vector_2d_t(a * x, a * y);
     return temp;
   }
@@ -60,28 +61,27 @@ class vector_2d_t {
 
  Variables */
  
-double RHO = 1.0;
-double MU = 0.06;
-double G = 0.0;
+float RHO = 1.0;
+float MU = 0.06;
 
-double CELL_SIZE = 0.1;
-double FRAME_DT = 1.0 / 60.0;
+float CELL_SIZE = 0.1;
+float FRAME_DT = 1.0 / 60.0;
 boolean ADAPTIVE_STEP = true;
-double TIME_STEP_MULT = 0.7;
+float TIME_STEP_MULT = 0.7;
 int GAUSS_S_N_STEPS = 3;
 
-double SQ_CELL_SIZE = sq(CELL_SIZE);
-double INV_CELL_SIZE = 1.0 / CELL_SIZE;
-double INV_SQ_CELL_S = 1.0 / sq(CELL_SIZE);
-double VISC_ACC_MULT = MU / RHO;
-vector_2d_t G_ACC = new vector_2d_t(0, G);
+float SQ_CELL_SIZE = sq(CELL_SIZE);
+float INV_CELL_SIZE = 1.0 / CELL_SIZE;
+float INV_SQ_CELL_S = 1.0 / sq(CELL_SIZE);
+float VISC_ACC_MULT = MU / RHO;
 
 vector_2d_t u[]; // discretized velocities
 vector_2d_t temp_u[]; // temporary storage
-double a[]; // an arbitrary quantity
-double temp_a[]; // temporary storage
-double div[]; // discretized divergence values
-double phi[]; // scalar potential values for helmholtz decomposition
+float a[]; // an arbitrary quantity
+float temp_a[]; // temporary storage
+
+float div[]; // discretized divergence values
+float phi[]; // scalar potential values for helmholtz decomposition
 
 /* --------------------------------------------------------------------------
 
@@ -98,10 +98,11 @@ void setup() {
     temp_u[i] = new vector_2d_t();
   }
   
-  a = new double[width * height];
-  temp_a = new double[width * height];
-  div = new double[width * height];
-  phi = new double[width * height];
+  a = new float[width * height];
+  temp_a = new float[width * height];
+  
+  div = new float[width * height];
+  phi = new float[width * height];
 }
 
 /* --------------------------------------------------------------------------
@@ -112,11 +113,14 @@ void draw() {
   
   // ensure covergence
   
-  double time_step;
+  float time_step;
   if (ADAPTIVE_STEP) {
-    double max_c = 0.000001;
-    for (int i = 0; i < width; i ++) {
-      for (int j = 0; j < height; j ++) {
+    float max_c = 0.000001;
+    for (int i = 1; i < width - 1; i ++) {
+      for (int j = 1; j < height - 1; j ++) {
+        
+        // find max velocity component
+        
         if (abs(u[i * height + j].x) > max_c) {
           max_c = abs(u[i * height + j].x);
         }
@@ -169,7 +173,7 @@ void draw() {
         
         // local attributes
         
-        vector_2d_t cell_loc = new vector_2d_t(j * CELL_SIZE, k * CELL_SIZE);
+        vector_2d_t cell_loc = new vector_2d_t(j, k);
         vector_2d_t visc_acc = (new vector_2d_t(
           (u[(j + 1) * height + k].x + u[(j - 1) * height + k].x 
           + u[j * height + k + 1].x + u[j * height + k - 1].x
@@ -177,30 +181,30 @@ void draw() {
           (u[(j + 1) * height + k].y + u[(j - 1) * height + k].y 
           + u[j * height + k + 1].y + u[j * height + k - 1].y 
           - 4 * u[j * height + k].y) * INV_SQ_CELL_S)).scale(VISC_ACC_MULT);
-        vector_2d_t u_prime = u[j * height + k].add(visc_acc.add(G_ACC)
+        vector_2d_t u_prime = u[j * height + k].add(visc_acc
           .scale(time_step));
         
         // bilinear interpolation
         
         vector_2d_t dest_loc = cell_loc.add(u[j * height + k]
-          .scale(time_step));
-        vector_2d_t dest_ind = dest_loc.scale(INV_CELL_SIZE);
+          .scale(time_step * INV_CELL_SIZE));
         
-        int dest_ind_x = (int) dest_ind.x;
-        int dest_ind_y = (int) dest_ind.y;
+        int dest_ind_x = (int) dest_loc.x;
+        int dest_ind_y = (int) dest_loc.y;
         
-        double fr_v = dest_ind.y - dest_ind_y;
-        double fr_h = dest_ind.x - dest_ind_x;
+        float fr_v = dest_loc.y - dest_ind_y;
+        float fr_h = dest_loc.x - dest_ind_x;
         
-        double c0 = fr_v * fr_h;
-        double c1 = fr_v * (1 - fr_h);
-        double c2 = (1 - fr_v) * (1 - fr_h);
-        double c3 = (1 - fr_v) * fr_h;
+        float c0 = fr_v * fr_h;
+        float c1 = fr_v * (1 - fr_h);
+        float c2 = (1 - fr_v) * (1 - fr_h);
+        float c3 = (1 - fr_v) * fr_h;
         
         // advect properties between cells
         
         dest_ind_x = constrain(dest_ind_x, 0, width - 2);
         dest_ind_y = constrain(dest_ind_y, 0, height - 2);
+        
         temp_u[(dest_ind_x + 1) * height + dest_ind_y + 1] = 
           temp_u[(dest_ind_x + 1) * height + dest_ind_y + 1]
           .add(u_prime.scale(c0));
@@ -259,7 +263,9 @@ void draw() {
 
  Functions */
  
-void remove_div() { // helmholtz decomposition
+void remove_div() {
+  
+  // helmholtz decomposition
   
   // compute divergence values
   
@@ -272,7 +278,8 @@ void remove_div() { // helmholtz decomposition
   }
   
   // use the gauss-seidel method to solve for phi values
-  // values are slightly offsetted for better convergence
+  
+  // some values are offsetted slightly for better convergence
   
   for (int i = 0; i < GAUSS_S_N_STEPS; i ++) {
     
@@ -316,11 +323,4 @@ void remove_div() { // helmholtz decomposition
         - phi[j * height + k - 1]) * 0.5 * INV_CELL_SIZE;
     }
   }
-}
-
-double abs(double a) {
-  return (a < 0)? - a : a;
-}
-double sq(double a) {
-  return a * a;
 }
